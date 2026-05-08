@@ -1,0 +1,8 @@
+email_notifier:
+  _target_: src.callbacks.email_notifier.EmailNotifier
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  sender_email: ${oc.env:SENDER_EMAIL, ""}
+  sender_password: ${oc.env:SENDER_PASSWORD, ""}
+  recipient_email: ${oc.env:RECIPIENT_EMAIL, ""}
+  subject_prefix: "[ECG Experiment]"
