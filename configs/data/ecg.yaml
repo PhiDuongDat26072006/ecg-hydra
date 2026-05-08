@@ -1,6 +1,6 @@
 _target_: src.data.ecg_datamodule.ECGDataModule
 csv_file: "ptb_fold.csv"
-data_dir: "/kaggle/input/datasets/tphdng/ecg-model/ecg/"
+data_dir: ""
 fold_train: null
 fold_test: 0
 batch_size: 256
