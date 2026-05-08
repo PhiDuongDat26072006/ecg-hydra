@@ -27,14 +27,14 @@ net:
     max_seq_length: 12
 
   multi_attention:
-    _target: torch.nn.MultiheadAttention
+    _target_: torch.nn.MultiheadAttention
     embed_dim: 64
     num_heads: 1
     dropout: 0.1
     batch_first: true
 
   classifier: # Linear -> BN -> LR -> Dropout
-    _target: nn.Sequential
+    _target_: torch.nn.Sequential
     _args_:
       - _target_: torch.nn.Linear
         in_features: 768 # 64 * 12
@@ -63,7 +63,7 @@ net:
         p: 0.5
 
       - _target_: torch.nn.Linear
-        in_features: 256
+        in_features: 128
         out_features: 2
 
   num_classes: 2
