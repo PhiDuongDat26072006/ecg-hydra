@@ -103,7 +103,7 @@ DACB: &dabc
     _target_: torch.nn.AdaptiveAvgPool1d
     output_size: 1
 
-MCDANNNet:
+net:
   _target_: src.models.components.mcdann_net.MCDANNNet
   channels:
     _target_: torch.nn.ModuleList
