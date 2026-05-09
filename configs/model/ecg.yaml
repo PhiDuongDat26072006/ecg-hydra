@@ -3,7 +3,7 @@ num_classes: 2
 learning_rate: 0.001
 compile: false
 
-DACB:
+DACB: &dabc
   _target_: src.models.components.mcdann_net.DACB
   conv1_3:
     _target_: torch.nn.Conv1d
@@ -108,18 +108,18 @@ MCDANNNet:
   channels:
     _target_: torch.nn.ModuleList
     modules:
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
-      - _target_: src.models.components.mcdann_net.DACB
+      - *dabc
+      - *dabc
+      - *dabc
+      - *dabc
+      - *dabc
+      - *dabc
+      - *dabc
+      - *dabc
+      - *dabc
+      - *dabc
+      - *dabc
+      - *dabc
 
   positional_encoding:
     _target_: src.models.components.mcdann_net.PositionalEncoding
