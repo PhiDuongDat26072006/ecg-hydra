@@ -4,16 +4,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SEBlock(nn.Module):
-    def __init__(self, in_channels, reduction=16, minimum_reduced_dim=4, chanel_size_out_gap=1, p_dropout=0.1):
+    def __init__(self, gap, fc1, dropout, fc2, relu, sigmoid):
         super(SEBlock, self).__init__()
-        self.gap = nn.AdaptiveAvgPool1d(chanel_size_out_gap)
+        self.gap = gap
         # Cải tiến: Thêm dropout và better initialization
-        reduced_dim = max(in_channels // reduction, minimum_reduced_dim)
-        self.fc1 = nn.Linear(in_channels, reduced_dim)
-        self.dropout = nn.Dropout(p_dropout)
-        self.fc2 = nn.Linear(reduced_dim, in_channels)
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+        #reduced_dim = max(in_channels // reduction, minimum_reduced_dim)
+        self.fc1 = fc1
+        self.dropout = dropout
+        self.fc2 = fc2
+        self.relu = relu
+        self.sigmoid = sigmoid
 
     def forward(self, x):
         b, c, _ = x.size()
@@ -61,7 +61,7 @@ class DenseBlock(nn.Module):
 
 
 class TransitionLayer(nn.Module):
-    def __init__(self, conv, bn, lrelu, pool): # out_channels = 64
+    def __init__(self, conv, bn, lrelu, pool):
         super().__init__()
         # Cải tiến: Thêm batch norm và activation
         self.conv = conv
@@ -149,14 +149,14 @@ class DACB(nn.Module):
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, num_leads=12):
+    def __init__(self, pe, position, div_term):
         super().__init__()
-        pe = torch.zeros(num_leads, d_model)
-        position = torch.arange(0, num_leads, dtype=torch.float).unsqueeze(1) # shape_arr=(12,1), có giá trị 0->11
-
+        pe = pe                         # torch.zeros(num_leads, d_model)
+        position = position             # torch.arange(0, num_leads, dtype=torch.float).unsqueeze(1)
+                                        # tạo mảng có shape=(12,1), có giá trị 0->11
         # Sinh vị trí cho các lead
         # hàm toán học sinh vị trí
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        div_term = div_term             # torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
         # cột chẵn dùng hàm sin để sinh vị trí
         pe[:, 0::2] = torch.sin(position * div_term)
         # cột lẻ dùng hàm cos để sinh vị trí
@@ -212,30 +212,28 @@ class MCDANNNet(nn.Module):
         # Cải tiến: Enhanced normalization (per-lead)
         mean = x.mean(dim=2, keepdim=True)  
         std = x.std(dim=2, keepdim=True)    
-        x = (x - mean) / (std + 1e-8)  # Cộng 1e-8 để tránh chia cho 0
+        x = (x - mean) / (std + 1e-8)                                      # Add 1e-8 to avoid divide by 0
         
         features = []
         for i, channel in enumerate(self.channels):
-            # lead shape = (batch size, 1, 600)
-            lead = x[:, i, :].unsqueeze(1)
-            # feat shape = (batch size, 64)
-            feat = channel(lead).squeeze(-1)
+            lead = x[:, i, :].unsqueeze(1)                                 # lead shape = [batch size, 1, 600]
+            feat = channel(lead).squeeze(-1)                               # feat shape = [batch size, 64]
             features.append(feat)
         
-        # Cải tiến: Stack features for attention [batch size, num_leads, 64]
-        stacked_features = torch.stack(features, dim=1)
+        # Cải tiến: Stack features for attention
+        stacked_features = torch.stack(features, dim=1)                    # output shape [batch size, num_leads, 64]
         
         # Cải tiến: Add positional encoding to help attention understand lead positions
-        stacked_features = self.positional_encoding(stacked_features)
+        stacked_features = self.positional_encoding(stacked_features)      # output shape [batch size, num_leads, 64]
         
         # Cải tiến: Apply cross-lead attention
         attended_features, _ = self.lead_attention(
-            stacked_features, stacked_features, stacked_features
+            stacked_features, stacked_features, stacked_features           # output shape [batch size, num_leads, 64]
         )
         
         # Cải tiến: Combine original and attended features
-        enhanced_features = stacked_features + attended_features
+        enhanced_features = stacked_features + attended_features           # output shape [batch size, num_leads, 64]
         
-        # Flatten for classification [batch size, 768]
-        combined = enhanced_features.view(batch_size, -1)
+        # Flatten for classification
+        combined = enhanced_features.view(batch_size, -1)                  # output shape [batch size, 768]
         return self.classifier(combined)

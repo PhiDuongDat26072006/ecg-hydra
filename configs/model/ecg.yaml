@@ -111,7 +111,7 @@ net:
           gap:
             _target_: torch.nn.AdaptiveAvgPool1d
             output_size: 1
-          # reduced_dim = max(reduced_dim:64 // 16, minimum_reduced_dim:4)
+          #### reduced_dim = max(reduced_dim:64 // 16, minimum_reduced_dim:4)
           fc1:
             _target_: torch.nn.Linear
             in_features: 64
@@ -124,7 +124,7 @@ net:
           fc2:
             _target_: torch.nn.Linear
             in_features: 4
-            out_features: 64 # reduced_dim
+            out_features: 64
 
           relu:
             _target_: torch.nn.ReLU
@@ -210,7 +210,7 @@ net:
           fc2:
             _target_: torch.nn.Linear
             in_features: 4
-            out_features: 64 # reduced_dim
+            out_features: 64
 
           relu:
             _target_: torch.nn.ReLU
@@ -304,8 +304,35 @@ net:
 
   positional_encoding:
     _target_: src.models.components.mcdann_net.PositionalEncoding
-    d_model: 64
-    num_leads: 12
+    pe:
+      _target_: torch.zeros
+      size:
+        - 12 # num_leads
+        - 64 # d_model
+
+    position:
+      _target_: torch.arange
+      start: 0.0
+      end: 12.0
+
+    div_term:  #torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+      _target_: torch.exp
+      _args_:
+        - _target_: torch.mul
+          _args_:
+            - _target_: torch.arange
+              _args_:
+                - 0.0
+                - 64.0                     # d_model
+                - 2.0                      # step
+            - _target_: operator.truediv   # Phép chia:
+              _args_:
+                - _target_: operator.neg   # Dấu âm (-)
+                  _args_:
+                    - _target_: math.log   # math.log(10000.0)
+                      _args_:
+                        - 10000.0
+                - 64.0                     # d_model
 
   lead_attention:
     _target_: torch.nn.MultiheadAttention
