@@ -156,11 +156,11 @@ net:
 
           bn2:
             _target_: torch.nn.BatchNorm1d
-            num_features: 24 # 16 + 8
+            num_features: 72 # 64 + 8
 
           conv2:
             _target_: torch.nn.Conv1d
-            in_channels: 24 # 16 + 8
+            in_channels: 72 # 64 + 8
             out_channels: 8
             kernel_size: 3
             padding: "same"
@@ -242,11 +242,11 @@ net:
 
           bn2:
             _target_: torch.nn.BatchNorm1d
-            num_features: 24 # 16 + 8
+            num_features: 72 # 64 + 8
 
           conv2:
             _target_: torch.nn.Conv1d
-            in_channels: 24 # 16 + 8
+            in_channels: 72 # 64 + 8
             out_channels: 8
             kernel_size: 3
             padding: "same"
