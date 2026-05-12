@@ -302,6 +302,11 @@ net:
       - *DACB
       - *DACB
 
+  positional_encoding:
+    _target_: src.models.components.mcdann_net.PositionalEncoding
+    d_model: 64
+    num_leads: 12
+
   lead_attention:
     _target_: torch.nn.MultiheadAttention
     embed_dim: 64
