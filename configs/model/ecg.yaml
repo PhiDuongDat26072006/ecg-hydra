@@ -306,7 +306,7 @@ net:
     _target_: src.models.components.mcdann_net.PositionalEncoding
     pe:
       _target_: torch.zeros
-      size:
+      _args_:
         - 12 # num_leads
         - 64 # d_model
 
