@@ -302,38 +302,6 @@ net:
       - *DACB
       - *DACB
 
-  positional_encoding:
-    _target_: src.models.components.mcdann_net.PositionalEncoding
-    pe:
-      _target_: torch.zeros
-      _args_:
-        - 12 # num_leads
-        - 64 # d_model
-
-    position:
-      _target_: torch.arange
-      start: 0.0
-      end: 12.0
-
-    div_term:  #torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-      _target_: torch.exp
-      _args_:
-        - _target_: torch.mul
-          _args_:
-            - _target_: torch.arange
-              _args_:
-                - 0.0
-                - 64.0                     # d_model
-                - 2.0                      # step
-            - _target_: operator.truediv   # Phép chia:
-              _args_:
-                - _target_: operator.neg   # Dấu âm (-)
-                  _args_:
-                    - _target_: math.log   # math.log(10000.0)
-                      _args_:
-                        - 10000.0
-                - 64.0                     # d_model
-
   lead_attention:
     _target_: torch.nn.MultiheadAttention
     embed_dim: 64

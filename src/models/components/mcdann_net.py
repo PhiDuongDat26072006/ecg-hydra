@@ -149,14 +149,13 @@ class DACB(nn.Module):
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, pe, position, div_term):
+    def __init__(self, d_model, num_leads=12):
         super().__init__()
-        pe = pe                         # torch.zeros(num_leads, d_model)
-        position = position             # torch.arange(0, num_leads, dtype=torch.float).unsqueeze(1)
-                                        # tạo mảng có shape=(12,1), có giá trị 0->11
+        pe = torch.zeros(num_leads, d_model)
+        position = torch.arange(0, num_leads, dtype=torch.float).unsqueeze(1) # tạo mảng có shape=(12,1), có giá trị 0->11
         # Sinh vị trí cho các lead
         # hàm toán học sinh vị trí
-        div_term = div_term             # torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
         # cột chẵn dùng hàm sin để sinh vị trí
         pe[:, 0::2] = torch.sin(position * div_term)
         # cột lẻ dùng hàm cos để sinh vị trí
