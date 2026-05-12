@@ -28,19 +28,18 @@ class SEBlock(nn.Module):
 
 
 class DenseBlock(nn.Module):
-    def __init__(self, in_channels, growth_rate=8, kernel_sizes=[5,3], leaky=0.01, p_dropout=0.1):
+    def __init__(self, lrelu, bn1, conv1, dropout1, bn2, conv2, dropout2 ): # out_channels = 8
         super().__init__()
-        self.lrelu = nn.LeakyReLU(leaky)
-        self.bn1 = nn.BatchNorm1d(in_channels)
+        self.lrelu = lrelu
+
+        self.bn1 = bn1
         # Cải tiến: Thêm bias=False và dropout
-        self.conv1 = nn.Conv1d(in_channels, growth_rate, kernel_size=kernel_sizes[0],
-                               padding="same", bias=False)
-        self.dropout1 = nn.Dropout1d(p_dropout)
+        self.conv1 = conv1
+        self.dropout1 = dropout1
         
-        self.bn2 = nn.BatchNorm1d(in_channels + growth_rate)
-        self.conv2 = nn.Conv1d(in_channels + growth_rate, growth_rate, kernel_size=kernel_sizes[1],
-                               padding="same", bias=False)
-        self.dropout2 = nn.Dropout1d(p_dropout)
+        self.bn2 = bn2
+        self.conv2 = conv2
+        self.dropout2 = dropout2
 
     def forward(self, x):
         # First Composite Function
@@ -62,13 +61,13 @@ class DenseBlock(nn.Module):
 
 
 class TransitionLayer(nn.Module):
-    def __init__(self, in_channels, out_channels=64, leak_scale=0.01):
+    def __init__(self, conv, bn, lrelu, pool): # out_channels = 64
         super().__init__()
         # Cải tiến: Thêm batch norm và activation
-        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=False)
-        self.bn = nn.BatchNorm1d(out_channels)
-        self.lrelu = nn.LeakyReLU(leak_scale)
-        self.pool = nn.AvgPool1d(kernel_size=2, stride=2)
+        self.conv = conv
+        self.bn = bn
+        self.lrelu = lrelu
+        self.pool = pool
 
     def forward(self, x):
         x = self.conv(x)
@@ -108,44 +107,45 @@ class DACB(nn.Module):
         self.lrelu = lrelu
         self.gap = gap
 
-    def forward(self, x):   # x shape = [Batch size, 1, 300)
+    def forward(self, x):                                           # input shape = [batch size, 1, 600]
         # Cải tiến: Multi-scale feature extraction
-        f1 = self.conv1_3(x)
-        f2 = self.conv1_5(x)
-        f3 = self.conv1_7(x)
-        f4 = self.conv1_9(x)
-        x = torch.cat([f1, f2, f3, f4], dim=1)
-        x = self.initial_bn(x)
-        x = self.initial_lrelu(x)
-        
+        f1 = self.conv1_3(x)                                        # input shape = [bs, 4, 300]
+        f2 = self.conv1_5(x)                                        # input shape = [bs, 4, 300]
+        f3 = self.conv1_7(x)                                        # input shape = [bs, 4, 300]
+        f4 = self.conv1_9(x)                                        # input shape = [bs, 4, 300]
+        x = torch.cat([f1, f2, f3, f4], dim=1)                      # input shape = 4 * [bs, 4, 300]
+        x = self.initial_bn(x)                                      # input shap e = [bs, 16, 300]
+        x = self.initial_lrelu(x)                                   # input shape = [bs, 16, 300]
+
         # Store for skip connection
         skip_input = x
 
-        d = self.dense1(x)
-        d = self.transition1(d)
-        d = self.se1(d)
+        d = self.dense1(x)                                          # input shape = [bs, 16, 300]
+        d = self.transition1(d)                                     # input shape = [bs, 32, 300]
+        d = self.se1(d)                                             # input shape = [bs, 64, 150]
 
-        d = self.dense2(d)
-        d = self.transition2(d)
-        d = self.se2(d)
-        
+        d = self.dense2(d)                                          # input shape = [bs, 64, 150]
+        d = self.transition2(d)                                     # input shape = [bs, 80, 150]
+        d = self.se2(d)                                             # input shape = [bs, 64, 75]
+
         # Cải tiến: Additional processing
-        d = self.dense3(d)
-        d = self.final_conv(d)
-        d = self.final_bn(d)
-        d = self.lrelu(d)
-        
-        skip = self.skip(skip_input)
-        
+        d = self.dense3(d)                                          # input shape = [bs, 64, 75]
+        d = self.final_conv(d)                                      # input shape = [bs, 80, 75]
+        d = self.final_bn(d)                                        # input shape = [bs, 64, 75]
+        d = self.lrelu(d)                                           # input shape = [bs, 64, 75]
+
+        skip = self.skip(skip_input)                                # input shape = [bs, 16, 300]
+
         # Cải tiến: Residual connection instead of concatenation
-        if d.size(-1) != skip.size(-1): # nếu chiều cuối của 2 dữ liệu khác nhau thì dùng linear interpolate
+        if d.size(-1) != skip.size(-1):                             # input shape = [bs, 64, 300]
             skip = F.interpolate(skip, size=d.size(-1), mode='linear', align_corners=False)
-        
-        out = d + skip  # Residual connection
-        out = self.lrelu(out)
-        out = self.gap(out)
-        
-        return out
+
+        # Residual connection,
+        out = d + skip                                              # input shape = [bs, 64, 75] + [bs, 64, 75]
+        out = self.lrelu(out)                                       # input shape = [bs, 64, 75]
+        out = self.gap(out)                                         # input shape = [bs, 64, 75]
+
+        return out                                                  #out shape = [bs, 64, 1]
 
 
 class PositionalEncoding(nn.Module):
@@ -155,11 +155,11 @@ class PositionalEncoding(nn.Module):
         position = torch.arange(0, num_leads, dtype=torch.float).unsqueeze(1) # shape_arr=(12,1), có giá trị 0->11
 
         # Sinh vị trí cho các lead
-        # hàm sinh vị trí
+        # hàm toán học sinh vị trí
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        # các cột chẵn dùng hàm sin để sinh vị trí
+        # cột chẵn dùng hàm sin để sinh vị trí
         pe[:, 0::2] = torch.sin(position * div_term)
-        # các cột lẻ dùng hàm cos để sinh vị trí
+        # cột lẻ dùng hàm cos để sinh vị trí
         pe[:, 1::2] = torch.cos(position * div_term)
 
         pe = pe.unsqueeze(0)  # Add batch dimension
@@ -174,7 +174,7 @@ class MCDANNNet(nn.Module):
     def __init__(self, num_classes, channels, positional_encoding, lead_attention, classifier):
         super(MCDANNNet, self).__init__()
         self.channels = channels  # nn.ModuleList([DACB() for _ in range(12)])  # 12 module per 12 leads
-        
+
         # Cải tiến: Positional encoding for leads
         self.positional_encoding = positional_encoding
         
