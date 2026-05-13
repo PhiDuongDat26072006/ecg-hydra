@@ -114,7 +114,7 @@ class DACB(nn.Module):
         f3 = self.conv1_7(x)                                        # input shape = [bs, 4, 300]
         f4 = self.conv1_9(x)                                        # input shape = [bs, 4, 300]
         x = torch.cat([f1, f2, f3, f4], dim=1)                      # input shape = 4 * [bs, 4, 300]
-        x = self.initial_bn(x)                                      # input shap e = [bs, 16, 300]
+        x = self.initial_bn(x)                                      # input shape = [bs, 16, 300]
         x = self.initial_lrelu(x)                                   # input shape = [bs, 16, 300]
 
         # Store for skip connection
@@ -145,14 +145,14 @@ class DACB(nn.Module):
         out = self.lrelu(out)                                       # input shape = [bs, 64, 75]
         out = self.gap(out)                                         # input shape = [bs, 64, 75]
 
-        return out                                                  #out shape = [bs, 64, 1]
+        return out                                                  # out shape = [bs, 64, 1]
 
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, num_leads=12):
         super().__init__()
         pe = torch.zeros(num_leads, d_model)
-        position = torch.arange(0, num_leads, dtype=torch.float).unsqueeze(1) # tạo mảng có shape=(12,1), có giá trị 0->11
+        position = torch.arange(0, num_leads, dtype=torch.float).unsqueeze(1) # tạo mảng có shape=[12,1], có giá trị 0->11
         # Sinh vị trí cho các lead
         # hàm toán học sinh vị trí
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
