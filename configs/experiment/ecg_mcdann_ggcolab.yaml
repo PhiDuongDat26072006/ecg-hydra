@@ -7,7 +7,11 @@ defaults:
   - override /data: ecg
   - override /model: ecg
   - override /callbacks: default
-  - override /trainer: default
+  - override /logger: csv 
+  - override /trainer: gpu 
+  - override /paths: default
+  - override /extras: default
+  - override /hydra: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -19,9 +23,17 @@ seed: 30
 trainer:
   min_epochs: 1
   max_epochs: 15
-  accelerator: auto
+  accelerator: gpu
   devices: 1
   deterministic: warn
+
+paths:
+  root_dir: ${oc.env:PROJECT_ROOT}
+  data_dir: "/content/drive/MyDrive/Colab_Notebooks/data"
+  log_dir: "/content/drive/MyDrive/Colab_Notebooks/ecg_logs"
+  output_dir: ${hydra:runtime.output_dir}
+  work_dir: ${hydra:runtime.cwd}
+
 
 callbacks:
   model_checkpoint:
