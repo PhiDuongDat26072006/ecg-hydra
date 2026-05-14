@@ -7,6 +7,7 @@ import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
+from hydra.core.hydra_config import HydraConfig
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 # ------------------------------------------------------------------------------------ #
@@ -67,6 +68,21 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     log.info("Instantiating loggers...")
     logger: List[Logger] = instantiate_loggers(cfg.get("logger"))
+
+    # Phân chia GPU cho các trial
+    if HydraConfig.initialized():
+        sweeper_cfg = HydraConfig.get().get("sweeper", {})
+        n_devices = cfg.trainer.get("devices")
+        n_jobs = sweeper_cfg.get("n_jobs", 1)
+        n_gpus = torch.cuda.device_count()
+        active_gpus = min(n_gpus, n_jobs)
+
+        if active_gpus > 1 and n_devices == 1:
+            job_num = HydraConfig.get().job.get("num", 0)
+            gpu_id = job_num % active_gpus
+            cfg.trainer.devices = [gpu_id]
+            log.info(f"Đang chạy với n_devices={n_devices}, n_jobs={n_jobs}, n_gpus={n_gpus}, active_gpus={active_gpus} \
+                        Assigning Trial {job_num} to GPU {gpu_id}")
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
     trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
