@@ -93,7 +93,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
             ckpt_path=cfg.get("ckpt_path"),
         )
 
-    train_metrics = trainer.callback_metrics
+    train_metrics = dict(trainer.callback_metrics)
 
     if cfg.get("test"):
         log.info("Starting testing!")
@@ -110,7 +110,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
             trainer.test(model=model, dataloaders=datamodule.test_dataloader(), ckpt_path=ckpt_path)
             log.info(f"Best ckpt path: {ckpt_path}")
 
-    test_metrics = trainer.callback_metrics
+    test_metrics = dict(trainer.callback_metrics)
 
     # merge train and test metrics
     metric_dict = {**train_metrics, **test_metrics}
