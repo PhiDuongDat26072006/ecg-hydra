@@ -49,7 +49,7 @@ hydra:
     # define hyperparameter search space
     params:
       model.learning_rate: interval(0.0005, 0.002)
-      callbacks.swa.swa_lrs: interval(0.0005, 0.001)
+      callbacks.swa.swa_lrs: interval(0.0005, 0.002)
       trainer.max_epochs: choice(10, 13, 15, 17, 20)
 
       

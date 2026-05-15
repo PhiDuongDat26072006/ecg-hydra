@@ -10,6 +10,10 @@ from omegaconf import DictConfig, open_dict
 from src.train import train
 from src.utils import extras, get_metric_value
 
+##############################################
+########## run k_fold_cross_validation########
+##############################################
+
 @hydra.main(version_base="1.3", config_path="configs", config_name="train.yaml")
 def main(cfg: DictConfig) -> Optional[float]:
     # apply extra utilities
