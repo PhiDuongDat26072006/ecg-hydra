@@ -178,7 +178,7 @@ class ECGDataModule(L.LightningDataModule):
             ),
         )
 
-        split_with_patient = False
+        split_with_patient = True
         if split_with_patient:
             dataset_patient_id_list = list(dataset.info["patient_number"].unique())
             random.shuffle(dataset_patient_id_list)
