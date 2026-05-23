@@ -18,6 +18,8 @@ defaults:
 
 tags: ["ecg", "mcdann"]
 
+seed: 30
+
 trainer:
   min_epochs: 1
   max_epochs: 15

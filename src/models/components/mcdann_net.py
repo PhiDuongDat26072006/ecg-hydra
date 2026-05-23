@@ -166,7 +166,7 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x):
         # x shape: [batch_size, num_leads, d_model]
-        return x + self.pe[:, :x.size(1)]
+        return x + self.pe[:, :x.size(1), :]
 
 
 class MCDANNNet(nn.Module):
