@@ -4,16 +4,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SEBlock(nn.Module):
-    def __init__(self, gap, fc1, dropout, fc2, relu, sigmoid):
+    def __init__(self, in_channels, reduction=16):
         super(SEBlock, self).__init__()
-        self.gap = gap
+        self.gap = nn.AdaptiveAvgPool1d(output_size=1)
         # Cải tiến: Thêm dropout và better initialization
-        #reduced_dim = max(in_channels // reduction, minimum_reduced_dim)
-        self.fc1 = fc1
-        self.dropout = dropout
-        self.fc2 = fc2
-        self.relu = relu
-        self.sigmoid = sigmoid
+        reduced_dim = max(in_channels // reduction, 4)
+        self.fc1 = nn.Linear(in_channels, reduced_dim)
+        self.dropout = nn.Dropout(p=0.1)
+        self.fc2 = nn.Linear(reduced_dim, in_channels)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         b, c, _ = x.size()
@@ -22,24 +22,24 @@ class SEBlock(nn.Module):
         y = self.relu(y)
         y = self.dropout(y)
         y = self.fc2(y)
-        # mở rộng thêm 1 chiều để scale với dữ liệu
         y = self.sigmoid(y).view(b, c, 1)
         return x * y
 
 
 class DenseBlock(nn.Module):
-    def __init__(self, lrelu, bn1, conv1, dropout1, bn2, conv2, dropout2 ): # out_channels = 8
+    def __init__(self, in_channels, growth_rate=8, kernel_sizes=[5, 3]):
         super().__init__()
-        self.lrelu = lrelu
-
-        self.bn1 = bn1
+        self.lrelu = nn.LeakyReLU(negative_slope=0.01)
+        self.bn1 = nn.BatchNorm1d(in_channels)
         # Cải tiến: Thêm bias=False và dropout
-        self.conv1 = conv1
-        self.dropout1 = dropout1
-        
-        self.bn2 = bn2
-        self.conv2 = conv2
-        self.dropout2 = dropout2
+        self.conv1 = nn.Conv1d(in_channels, growth_rate, kernel_size=kernel_sizes[0],
+                               padding="same", bias=False)
+        self.dropout1 = nn.Dropout1d(p=0.1)
+
+        self.bn2 = nn.BatchNorm1d(in_channels + growth_rate)
+        self.conv2 = nn.Conv1d(in_channels + growth_rate, growth_rate, kernel_size=kernel_sizes[1],
+                               padding="same", bias=False)
+        self.dropout2 = nn.Dropout1d(p=0.1)
 
     def forward(self, x):
         # First Composite Function
@@ -61,13 +61,13 @@ class DenseBlock(nn.Module):
 
 
 class TransitionLayer(nn.Module):
-    def __init__(self, conv, bn, lrelu, pool):
+    def __init__(self, in_channels, out_channels=64):
         super().__init__()
         # Cải tiến: Thêm batch norm và activation
-        self.conv = conv
-        self.bn = bn
-        self.lrelu = lrelu
-        self.pool = pool
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=False)
+        self.bn = nn.BatchNorm1d(out_channels)
+        self.lrelu = nn.LeakyReLU(negative_slope=0.01)
+        self.pool = nn.AvgPool1d(kernel_size=2, stride=2)
 
     def forward(self, x):
         x = self.conv(x)
